@@ -41,14 +41,15 @@ static void tps61165_write_byte(const tps61165_handle_t* handle, const uint8_t d
 	tps61165_set_ctrl(handle, 1);
 }
 
-esp_err_t tps61165_init(tps61165_handle_t* handle, const gpio_num_t ctrl_gpio)
+esp_err_t tps61165_init(tps61165_handle_t* handle, const gpio_num_t gpio)
 {
 	if (handle == nullptr)
 	{
 		return ESP_ERR_INVALID_ARG;
 	}
 
-	handle->ctrl_gpio = ctrl_gpio;
+	handle->ctrl_gpio = gpio;
+	handle->disabled = true;
 
 	const gpio_config_t ctrl_config = {
 		.pin_bit_mask = 1 << handle->ctrl_gpio,
@@ -64,19 +65,29 @@ esp_err_t tps61165_init(tps61165_handle_t* handle, const gpio_num_t ctrl_gpio)
 		return err;
 	}
 
-	tps61165_reset(handle);
-
 	return ESP_OK;
 }
 
-void tps61165_set_brightness(const tps61165_handle_t* handle, const uint8_t step)
+void tps61165_set_brightness(tps61165_handle_t* handle, const uint8_t brightness)
 {
 	if (handle == nullptr)
 	{
 		return;
 	}
 
-	const uint8_t data = step & 0x1F;
+	if (brightness == 0)
+	{
+		if (!handle->disabled)
+			tps61165_disable(handle);
+		return;
+	}
+
+	if (handle->disabled)
+	{
+		tps61165_enable(handle);
+	}
+
+	const uint8_t data = brightness & 0x1F;
 
 	tps61165_write_byte(handle, TPS61165_ES_ADDRESS);
 	tps61165_write_byte(handle, data);
@@ -98,4 +109,28 @@ void tps61165_reset(const tps61165_handle_t* handle)
 	esp_rom_delay_us(TPS61165_ES_DETECT_TIME_US);
 	tps61165_set_ctrl(handle, 1);
 	esp_rom_delay_us(TPS61165_ES_DETECT_WINDOW_US);
+}
+
+void tps61165_enable(tps61165_handle_t* handle)
+{
+	if (handle == nullptr)
+	{
+		return;
+	}
+
+	handle->disabled = false;
+
+	tps61165_reset(handle);
+}
+
+void tps61165_disable(tps61165_handle_t* handle)
+{
+	if (handle == nullptr)
+	{
+		return;
+	}
+
+	handle->disabled = true;
+
+	tps61165_set_ctrl(handle, 0);
 }
