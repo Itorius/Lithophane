@@ -406,7 +406,7 @@ void app_main(void)
 		ESP_LOGW(TAG, "STUSB4500 (vertical) did not ACK at 0x%02x: %s", V_STUSB_I2C_ADDR, esp_err_to_name(probe_err));
 	}
 
-#if 0
+#if 1
 	if (!flash_stusb(H_STUSB_I2C_ADDR))
 	{
 		ESP_LOGW(TAG, "Failed to flash STUSB (horizontal)");
